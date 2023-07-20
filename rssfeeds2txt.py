@@ -1,8 +1,5 @@
 #!/usr/bin/python3
 
-
-
-
 import argparse
 import sqlite3
 import html2text
@@ -12,12 +9,15 @@ import os.path
 def convert_to_iso8601(timestamp):
     return datetime.utcfromtimestamp(timestamp / 1000).isoformat()
 
+# Markdown format conversion for e.g. import into Obsidian.md
 def convert_html_to_markdown(html):
     h = html2text.HTML2Text()
     h.body_width = 0
     return h.handle(html)
 
-
+# The plaintext version is meant to really be stripped of everything
+# The original URL is placed at the top of the article, so it can be
+# retrieved with all the formatting
 def convert_html_to_text(html):
     h = html2text.HTML2Text()
     h.body_width = 0
@@ -31,7 +31,10 @@ def extract_messages_from_database(database_path):
     try:
         conn = sqlite3.connect(database_path)
         c = conn.cursor()
-        c.execute("SELECT id, title, date_created, url, contents, author FROM Messages")
+        c.execute("SELECT m.id, m.title, m.date_created, m.url, m.contents, m.feed, c.title, m.author "
+                  "FROM Messages m "
+                  "INNER JOIN Feeds f ON m.feed = f.id "
+                  "INNER JOIN Categories c ON f.category = c.id")
         messages = c.fetchall()
         conn.close()
         return messages
@@ -46,15 +49,22 @@ def create_text_documents(messages, output_path, output_format):
         date_created = message[2]
         url = message[3]
         contents = message[4]
-        author = message[5]
+        feed = message[5]
+        category = message[6]
+        author = message[7]
 
+        # create the correct extension 
         if output_format == "markdown":
             filename = os.path.join(output_path, f"rssarticle-{message_id}.md")
         else:
             filename = os.path.join(output_path, f"rssarticle-{message_id}.txt")
+
+            
+        # skip files processed on a previous run
         if os.path.exists(filename):
             print(f"Skipping existing file: {filename}")
             continue
+
 
         with open(filename, "w") as file:
             if output_format == "markdown":
@@ -62,7 +72,7 @@ def create_text_documents(messages, output_path, output_format):
                 file.write(f"title: \"{title}\"\n")
                 file.write(f"date_created: {convert_to_iso8601(date_created)}\n")
                 file.write(f"author: \"{author}\"\n")
-                file.write("tags: #rss\n")
+                file.write(f"tags: #rss, #{category}\n")
                 file.write("---\n\n")
                 file.write(f"# {title}\n\n")
                 file.write(convert_html_to_markdown(contents))
@@ -71,8 +81,8 @@ def create_text_documents(messages, output_path, output_format):
                 file.write(url + "\n\n")
                 file.write(convert_html_to_text(contents))
 
-        print(f"Created file: {filename}")
-
+        print(f"Created file: {filename}")  # print successful creation notice
+        
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extract messages from a SQLite database and create text documents.")
     parser.add_argument("database_file", help="Path to the SQLite database file")
