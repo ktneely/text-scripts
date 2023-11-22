@@ -73,6 +73,7 @@ def create_text_documents(messages, output_path, output_format):
                 file.write(f"date_created: {convert_to_iso8601(date_created)}\n")
                 file.write(f"author: \"{author}\"\n")
                 file.write(f"tags: #rss, #{category}\n")
+                file.write(f"url: " + url +"\n")
                 file.write("---\n\n")
                 file.write(f"# {title}\n\n")
                 file.write(convert_html_to_markdown(contents))
