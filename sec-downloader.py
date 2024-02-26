@@ -22,7 +22,7 @@ data_file = sys.argv[1]
 # More info: https://www.sec.gov/os/webmaster-faq#code-support
 # Company name and email are used to form a user-agent of the form:
 # User-Agent: <Company Name> <Email Address>
-dl = Downloader("Independent Researcher", "ktneely@astroturfgarden.com")
+dl = Downloader("Independent Researcher", "id@email.address")
 
 
 # Download two most recent filings from a given stock ticker symbol
